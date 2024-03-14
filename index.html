@@ -1,21 +1,216 @@
 <!DOCTYPE html>
-<html>
-<head>
-    <title>Checkbox Example</title>
-</head>
-<body>
-    <h1>Checkbox Example</h1>
-    
-    <input type="checkbox" id="checkbox1" name="checkbox1">
-    <label for="checkbox1">Checkbox 1</label><br>
-    
-    <input type="checkbox" id="checkbox2" name="checkbox2">
-    <label for="checkbox2">Checkbox 2</label><br>
-    
-    <input type="checkbox" id="checkbox3" name="checkbox3">
-    <label for="checkbox3">Checkbox 3</label><br>
-    
-    <input type="checkbox" id="checkbox4" name="checkbox4">
-    <label for="checkbox4">Checkbox 4</label><br>
-</body>
+<html lang="en">
+  <head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <!-- Bootstrap CSS -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+      integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH"
+      crossorigin="anonymous"
+    />
+    <style>
+      .done * {
+        text-decoration: line-through;
+      }
+      .active * {
+        cursor: pointer;
+      }
+    </style>
+
+    <title>Planning checklist</title>
+  </head>
+  <body>
+    <div class="container" style="margin-top: 64px">
+      <div class="row" style="margin-bottom: 32px;">
+        <div class="col-2">
+          <button class="btn btn-danger" id="clear-all">Clear all</button>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-6" style="margin-bottom: 32px">
+          <h1>Planning checklist</h1>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-6">
+          <div class="list-group" id="content"></div>
+        </div>
+        <div class="col-6" id="details" style="padding-top: 64px;"></div>
+      </div>
+    </div>
+
+    <script
+      src="https://code.jquery.com/jquery-3.7.1.min.js"
+      integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo="
+      crossorigin="anonymous"
+    ></script>
+    <script
+      src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+      integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
+      crossorigin="anonymous"
+    ></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+    <script>
+      const data = [
+        {
+          type: "h2",
+          text: "Closing",
+        },
+        {
+          type: "checkbox",
+          label: "Update estimates for un-closed tasks in sprint",
+          details:
+            "## Important!\n\nFirst do update of estimates in current sprint before closing it. \n\n This may include tasks in \n- Code Review\n- Testing\n- In Progress",
+        },
+        {
+          type: "checkbox",
+          label: "Create New & Close existing sprint",
+          details:
+            "1. Create new sprint\n2. Close the current one and let open tickets to fall into the new sprint",
+        },
+        {
+          type: "h2",
+          text: "Retrospective",
+        },
+        {
+          type: "checkbox",
+          label: "Update retrospective document",
+          details: "Fill the velocity table for the previous sprint",
+        },
+        {
+          type: "checkbox",
+          label: "Do the retrospective",
+          details: "What did we do well? What could we do better?",
+        },
+        {
+          type: "checkbox",
+          label: "Check action items from previous retrospective",
+          details:
+            "Check if the action items from the previous retrospective are done",
+        },
+        {
+          type: "h2",
+          text: "Planning",
+        },
+        {
+          type: "checkbox",
+          label: "Estimate the next target velocity",
+        },
+        {
+          type: "checkbox",
+          label: "Plan the next sprint",
+        },
+        {
+          type: "checkbox",
+          label: "Prepare the retrospective document",
+        },
+        {
+          type: "checkbox",
+          label: "**Start the sprint!**",
+        },
+      ];
+
+      const stepMap = {};
+
+      // on click clear all checkboxes
+      $("#clear-all").click(() => {
+        $("input[type=checkbox]").prop("checked", false);
+        localStorage.clear();
+        // refresh the page
+        location.reload();
+      });
+
+      // render the lements of the data array in the content div
+      let stepId = 0;
+      let activeStep = parseInt(localStorage.getItem("activeStep")) || 0;
+      data.forEach(async (item, index) => {
+        if (item.type.match(/h[1-6]/)) {
+          $("#content").append(
+            `<${item.type} style="margin-bottom: 32px">${item.text}</${item.type}>`
+          );
+        } else if (item.type === "checkbox") {
+          item.id = stepId;
+          stepMap[stepId] = item;
+          if (stepId === activeStep) {
+            $("#details").html(
+              "<strong>" +
+                item.label +
+                "</strong><br /><hr /></br />" +
+                marked.parse(item.details || "")
+            );
+          }
+
+          $("#content").append(`
+                <a class="list-group-item list-group-item-action ${
+                  stepId === activeStep ? "active" : "disabled"
+                }" id="${item.id}">
+                    <input type="checkbox" id="${
+                      item.id
+                    }-checkbox" class="form-check-input me-2" />
+                    <label class="form-check-label stretched-link" for="${
+                      item.id
+                    }-checkbox">${item.label}</label>
+                </a>
+                `);
+
+          // store state in a local storage upon update
+          $(`#${item.id}`).click(() => {
+            if (item.id !== activeStep) {
+              return;
+            }
+
+            // check the checkbox
+            // if not checked, check it
+            if (!$(`#${item.id}-checkbox`).prop("checked")) {
+              $(`#${item.id}-checkbox`).prop("checked", true);
+            }
+
+            localStorage.setItem(item.id, "done");
+
+            // add done class
+            $(`#${item.id}`).addClass("done");
+            // disable the item
+            $(`#${item.id}`).addClass("disabled");
+            // remove active class
+            $(`#${item.id}`).removeClass("active");
+
+            // set next step as active
+            $(`#${item.id + 1}`).addClass("active");
+            // remove disabled class
+            $(`#${item.id + 1}`).removeClass("disabled");
+
+            activeStep = item.id + 1;
+
+            // store active step in local storage
+            localStorage.setItem("activeStep", activeStep);
+            if (stepMap[activeStep]) {
+              // switch the details
+              $("#details").html(
+                "<strong>" +
+                  stepMap[activeStep].label +
+                  "</strong><br /><hr /></br />" +
+                  marked.parse(stepMap[activeStep].details || "")
+              );
+            }
+
+            return false;
+          });
+
+          // restore on load
+          if (localStorage.getItem(item.id)) {
+            $(`#${item.id}-checkbox`).prop("checked", true);
+            $(`#${item.id}`).addClass("done");
+            $(`#${item.id}`).addClass("disabled");
+          }
+
+          stepId += 1;
+        }
+      });
+    </script>
+  </body>
 </html>
